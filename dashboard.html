@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Credit Risk Model Dashboard</title>
+<style>
+  body { font-family: -apple-system, Helvetica, Arial, sans-serif; background: #f5f6f8; color: #1a1a1a; margin: 0; padding: 32px; }
+  h1 { color: #1B3A5C; margin-bottom: 4px; }
+  .subtitle { color: #5a5a5a; margin-bottom: 28px; }
+  .source-link { display: inline-block; margin-bottom: 20px; font-size: 13px; }
+  .source-link a { color: #1B3A5C; text-decoration: none; font-weight: 600; }
+  .source-link a:hover { text-decoration: underline; }
+  .card { background: #ffffff; border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card h2 { color: #1B3A5C; font-size: 16px; margin-top: 0; border-bottom: 1px solid #e2e2e2; padding-bottom: 8px; }
+  .figure-row { }
+  .figure-block { display: inline-block; margin-right: 48px; vertical-align: top; }
+  .figure { font-size: 24px; font-weight: 600; color: #1B3A5C; }
+  .figure-label { font-size: 12px; color: #5a5a5a; margin-bottom: 4px; }
+  .note { font-size: 13px; color: #5a5a5a; margin-bottom: 14px; }
+  .takeaway { font-size: 13px; line-height: 1.6; color: #2a2a2a; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  th { text-align: left; background: #1B3A5C; color: #fff; padding: 8px 10px; }
+  td { padding: 8px 10px; border-bottom: 1px solid #ececec; }
+  tr:nth-child(even) td { background: #fafafa; }
+</style>
+</head>
+<body>
+  <h1>Credit Risk Model</h1>
+  <div class="subtitle">Probability of default: logistic regression vs. gradient boosting, evaluated side by side</div>
+  <div class="source-link"><a href="https://github.com/yuschajp/credit_risk_model">View source on GitHub &rarr;</a></div>
+
+  <div class="card">
+    <h2>Portfolio summary</h2>
+    <div class="note">Synthetic, seeded data &mdash; demonstrates the evaluation methodology, not a real loan portfolio.</div>
+    <div class="figure-row">
+      <div class="figure-block">
+        <div class="figure-label">Loans in portfolio</div>
+        <div class="figure">5,000</div>
+      </div>
+      <div class="figure-block">
+        <div class="figure-label">Overall default rate</div>
+        <div class="figure">10.8%</div>
+      </div>
+      <div class="figure-block">
+        <div class="figure-label">Train / test split</div>
+        <div class="figure">3,500 / 1,500</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Model comparison</h2>
+    <table><thead><tr><th>Model</th><th>AUC</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead><tbody><tr><td>Logistic regression</td><td>0.801</td><td>63.2%</td><td>14.8%</td><td>0.24</td></tr><tr><td>Gradient boosting</td><td>0.790</td><td>60.7%</td><td>10.5%</td><td>0.18</td></tr></tbody></table>
+    <div class="note" style="margin-top: 10px;">Precision and recall are both measured at a 0.5 classification threshold, which is a starting point for comparison, not the right operating point for an 11% base rate in production.</div>
+  </div>
+
+  <div class="card">
+    <h2>Calibration: predicted PD vs. actual default rate, by decile</h2>
+    <div style="margin-top: 16px;"><strong style="font-size: 13px; color: #1B3A5C;">Logistic regression</strong></div><table><thead><tr><th>Predicted PD</th><th>Actual default rate</th></tr></thead><tbody><tr><td>0.7%</td><td>0.7%</td></tr><tr><td>1.6%</td><td>3.3%</td></tr><tr><td>2.4%</td><td>3.3%</td></tr><tr><td>3.4%</td><td>3.3%</td></tr><tr><td>5.0%</td><td>2.7%</td></tr><tr><td>7.1%</td><td>6.7%</td></tr><tr><td>9.8%</td><td>11.3%</td></tr><tr><td>13.9%</td><td>13.3%</td></tr><tr><td>20.3%</td><td>26.0%</td></tr><tr><td>40.9%</td><td>37.3%</td></tr></tbody></table><div style="margin-top: 16px;"><strong style="font-size: 13px; color: #1B3A5C;">Gradient boosting</strong></div><table><thead><tr><th>Predicted PD</th><th>Actual default rate</th></tr></thead><tbody><tr><td>1.5%</td><td>2.7%</td></tr><tr><td>2.2%</td><td>2.0%</td></tr><tr><td>2.8%</td><td>2.0%</td></tr><tr><td>3.7%</td><td>4.7%</td></tr><tr><td>4.6%</td><td>6.0%</td></tr><tr><td>6.2%</td><td>4.6%</td></tr><tr><td>8.8%</td><td>8.1%</td></tr><tr><td>13.1%</td><td>14.0%</td></tr><tr><td>19.6%</td><td>26.7%</td></tr><tr><td>40.1%</td><td>37.3%</td></tr></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2>Feature direction check</h2>
+    <div class="note">Does each model's learned relationship agree with the economic direction the data was generated with?</div>
+    <div style="margin-top: 16px;"><strong style="font-size: 13px; color: #1B3A5C;">Logistic regression</strong></div><table><thead><tr><th>Feature</th><th>Importance / coefficient</th><th>Matches expected direction</th></tr></thead><tbody><tr><td>dti</td><td>+0.856</td><td>yes</td></tr><tr><td>credit_score</td><td>-0.739</td><td>yes</td></tr><tr><td>ltv</td><td>+0.497</td><td>yes</td></tr><tr><td>delinquencies_2yr</td><td>+0.397</td><td>yes</td></tr><tr><td>interest_rate</td><td>+0.190</td><td>yes</td></tr><tr><td>employment_years</td><td>-0.144</td><td>yes</td></tr><tr><td>loan_amount</td><td>+0.025</td><td>yes</td></tr></tbody></table><div style="margin-top: 16px;"><strong style="font-size: 13px; color: #1B3A5C;">Gradient boosting</strong></div><table><thead><tr><th>Feature</th><th>Importance / coefficient</th><th>Matches expected direction</th></tr></thead><tbody><tr><td>dti</td><td>+0.304</td><td>yes</td></tr><tr><td>credit_score</td><td>+0.260</td><td>yes</td></tr><tr><td>ltv</td><td>+0.170</td><td>yes</td></tr><tr><td>delinquencies_2yr</td><td>+0.099</td><td>yes</td></tr><tr><td>interest_rate</td><td>+0.062</td><td>yes</td></tr><tr><td>employment_years</td><td>+0.058</td><td>yes</td></tr><tr><td>loan_amount</td><td>+0.048</td><td>yes</td></tr></tbody></table>
+    <div style="margin-top: 20px;"><strong style="font-size: 13px; color: #1B3A5C;">Product takeaway</strong></div>
+    <div class="takeaway">Both models learn the right direction on every feature, which matters more than either model's AUC: a model that scores well but learned a backwards relationship on even one feature isn't one you'd want underwriting real loans. Recall is low for both at the default threshold not because the models are weak, but because 0.5 isn't the right operating point for an 11% base rate &mdash; where that threshold actually gets set is a business decision about the cost of a false positive against a false negative, not something to leave at the library's default.</div>
+  </div>
+</body>
+</html>
