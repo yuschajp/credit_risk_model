@@ -1,5 +1,12 @@
 # Credit Risk Model
 
+## Live Dashboard
+[yuschajp.github.io/credit_risk_model/dashboard/index.html](...)
+
+Includes full AWS SageMaker deployment pipeline — model packaging, 
+S3 artifact storage, IAM role configuration, and endpoint deployment 
+script. Endpoint provisions in ~7 minutes on demand.
+
 A probability-of-default model on a synthetic consumer loan portfolio: a logistic regression baseline evaluated side by side with a gradient boosting model, on a held-out test set, with calibration and feature-direction checks rather than a single accuracy number presented as the whole story.
 
 ## Why this exists
