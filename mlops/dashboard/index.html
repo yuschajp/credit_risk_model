@@ -1,1 +1,514 @@
-404: Not Found
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CreditLens MLOps Pipeline</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --navy:   #1B3A5C;
+    --navy2:  #0f2236;
+    --accent: #2E6DA4;
+    --green:  #16a34a;
+    --red:    #dc2626;
+    --amber:  #d97706;
+    --gray:   #6b7280;
+    --bg:     #f5f7fa;
+    --card:   #ffffff;
+    --border: #e2e8f0;
+    --text:   #111827;
+    --mono:   'IBM Plex Mono', monospace;
+    --sans:   'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); }
+
+  header {
+    background: var(--navy2);
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--accent);
+  }
+  header h1 { font-family: var(--mono); font-size: 1.1rem; color: #fff; font-weight: 600; }
+  header .sub { font-family: var(--mono); font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-top: 3px; }
+  .live-badge {
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--mono); font-size: 0.72rem; color: #4ade80;
+    background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.25);
+    padding: 5px 12px; border-radius: 20px;
+  }
+  .live-dot { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 28px 20px; }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+  }
+  .card-label {
+    font-family: var(--mono); font-size: 0.68rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1px; color: var(--gray);
+    margin-bottom: 20px;
+  }
+
+  /* ── PIPELINE FLOW ── */
+  .pipeline-flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  .stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 130px;
+    position: relative;
+  }
+  .stage-box {
+    width: 110px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+    background: #fafbfc;
+    transition: all 0.3s ease;
+    cursor: default;
+  }
+  .stage-box.active  { border-color: var(--accent); background: #eff6ff; }
+  .stage-box.success { border-color: var(--green);  background: #f0fdf4; }
+  .stage-box.failed  { border-color: var(--red);    background: #fef2f2; }
+  .stage-box.pending { border-color: var(--border); background: #fafbfc; opacity: 0.6; }
+
+  .stage-icon { font-size: 1.5rem; margin-bottom: 6px; }
+  .stage-name { font-family: var(--mono); font-size: 0.68rem; font-weight: 600; color: var(--navy); }
+  .stage-status { font-size: 0.62rem; color: var(--gray); margin-top: 4px; }
+
+  .stage-connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 40px;
+    flex-shrink: 0;
+  }
+  .connector-line { width: 100%; height: 2px; background: var(--border); }
+  .connector-line.active  { background: var(--accent); }
+  .connector-line.success { background: var(--green); }
+  .connector-arrow { font-size: 0.9rem; color: var(--border); margin-top: -4px; }
+
+  /* Gate decision branch */
+  .gate-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 8px;
+    gap: 4px;
+  }
+  .gate-label {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+  .gate-pass { background: #f0fdf4; color: var(--green); border: 1px solid #86efac; }
+  .gate-fail { background: #fef2f2; color: var(--red);   border: 1px solid #fca5a5; }
+
+  /* ── METRICS GRID ── */
+  .metrics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 20px; }
+  .metric-tile { text-align: center; padding: 16px 12px; }
+  .metric-tile .val { font-family: var(--mono); font-size: 1.8rem; font-weight: 600; color: var(--navy); }
+  .metric-tile .lbl { font-size: 0.68rem; color: var(--gray); margin-top: 5px; text-transform: uppercase; letter-spacing: 0.7px; }
+
+  /* ── RUN LOG ── */
+  .run-log { font-family: var(--mono); font-size: 0.78rem; }
+  .log-entry {
+    display: flex; gap: 12px; padding: 8px 0;
+    border-bottom: 1px solid #f1f5f9;
+    align-items: flex-start;
+  }
+  .log-entry:last-child { border-bottom: none; }
+  .log-time { color: var(--gray); white-space: nowrap; flex-shrink: 0; }
+  .log-stage { color: var(--accent); min-width: 120px; flex-shrink: 0; }
+  .log-msg { color: var(--text); }
+  .log-ok   { color: var(--green); }
+  .log-err  { color: var(--red); }
+  .log-warn { color: var(--amber); }
+
+  /* ── HISTORY TABLE ── */
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th {
+    background: #f8fafc; padding: 8px 12px; text-align: left;
+    font-size: 0.67rem; text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--gray); border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+  }
+  td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; font-family: var(--mono); font-size: 0.78rem; }
+  tr:last-child td { border-bottom: none; }
+  .pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 0.67rem; font-weight: 600; }
+  .pill-g { background: #f0fdf4; color: var(--green); }
+  .pill-r { background: #fef2f2; color: var(--red); }
+  .pill-b { background: #eff6ff; color: var(--accent); }
+
+  .btn {
+    padding: 9px 20px; border: none; border-radius: 7px;
+    font-family: var(--mono); font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--navy); color: #fff; }
+  .btn-primary:hover { background: var(--accent); }
+  .btn-primary:disabled { background: #9ca3af; cursor: not-allowed; }
+  .btn-ghost { background: transparent; color: var(--gray); border: 1px solid var(--border); margin-left: 8px; }
+
+  .spinner {
+    display: inline-block; width: 12px; height: 12px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+    vertical-align: middle; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .threshold-row {
+    display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;
+  }
+  .threshold-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: #f8fafc; border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 12px;
+    font-family: var(--mono); font-size: 0.7rem; color: var(--gray);
+  }
+  .t-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>CreditLens — MLOps Pipeline</h1>
+    <div class="sub">AWS Step Functions · Train → Evaluate → Quality Gate → Promote · github.com/yuschajp</div>
+  </div>
+  <div class="live-badge"><div class="live-dot"></div>Simulation Mode</div>
+</header>
+
+<div class="container">
+
+  <!-- Metrics -->
+  <div class="metrics-grid">
+    <div class="card metric-tile">
+      <div class="val" id="m-runs">0</div><div class="lbl">Total Runs</div>
+    </div>
+    <div class="card metric-tile">
+      <div class="val" id="m-promoted">0</div><div class="lbl">Promoted</div>
+    </div>
+    <div class="card metric-tile">
+      <div class="val" id="m-rejected">0</div><div class="lbl">Rejected</div>
+    </div>
+    <div class="card metric-tile">
+      <div class="val" id="m-auc">—</div><div class="lbl">Last AUC</div>
+    </div>
+  </div>
+
+  <!-- Pipeline flow -->
+  <div class="card">
+    <div class="card-label">Pipeline State Machine — AWS Step Functions</div>
+    <div class="pipeline-flow">
+
+      <div class="stage">
+        <div class="stage-box pending" id="stage-train">
+          <div class="stage-icon">🏋️</div>
+          <div class="stage-name">Train</div>
+          <div class="stage-status" id="st-train">Waiting</div>
+        </div>
+      </div>
+
+      <div class="stage-connector">
+        <div class="connector-line" id="conn-1"></div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-box pending" id="stage-evaluate">
+          <div class="stage-icon">📊</div>
+          <div class="stage-name">Evaluate</div>
+          <div class="stage-status" id="st-evaluate">Waiting</div>
+        </div>
+      </div>
+
+      <div class="stage-connector">
+        <div class="connector-line" id="conn-2"></div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-box pending" id="stage-gate">
+          <div class="stage-icon">🚦</div>
+          <div class="stage-name">Quality Gate</div>
+          <div class="stage-status" id="st-gate">AUC ≥ 0.75</div>
+        </div>
+        <div class="gate-branch">
+          <span class="gate-label gate-pass">✅ PASS → Promote</span>
+          <span class="gate-label gate-fail">❌ FAIL → Reject</span>
+        </div>
+      </div>
+
+      <div class="stage-connector">
+        <div class="connector-line" id="conn-3"></div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-box pending" id="stage-promote">
+          <div class="stage-icon">🚀</div>
+          <div class="stage-name">Promote</div>
+          <div class="stage-status" id="st-promote">Waiting</div>
+        </div>
+      </div>
+
+      <div class="stage-connector">
+        <div class="connector-line" id="conn-4"></div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-box pending" id="stage-notify">
+          <div class="stage-icon">📣</div>
+          <div class="stage-name">Notify</div>
+          <div class="stage-status" id="st-notify">Waiting</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="threshold-row">
+      <div class="threshold-chip"><div class="t-dot"></div>AUC threshold: ≥ 0.75</div>
+      <div class="threshold-chip"><div class="t-dot"></div>Brier score: ≤ 0.15</div>
+      <div class="threshold-chip"><div class="t-dot"></div>Retry: 2× on Lambda errors</div>
+      <div class="threshold-chip"><div class="t-dot"></div>Registry: S3 versioned artifacts</div>
+    </div>
+  </div>
+
+  <!-- Controls + Log -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+    <div class="card">
+      <div class="card-label">Pipeline Controls</div>
+      <button class="btn btn-primary" id="run-btn" onclick="runPipeline()">▶ Run Pipeline</button>
+      <button class="btn btn-ghost" onclick="resetPipeline()">Reset</button>
+
+      <div style="margin-top:20px;">
+        <div class="card-label">Execution Log</div>
+        <div class="run-log" id="run-log" style="max-height:220px;overflow-y:auto;">
+          <div class="log-entry">
+            <span class="log-time">--:--:--</span>
+            <span class="log-stage">pipeline</span>
+            <span class="log-msg">Ready. Click Run Pipeline to start.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Run History</div>
+      <table>
+        <thead>
+          <tr><th>Run</th><th>AUC</th><th>Brier</th><th>Gate</th><th>Result</th></tr>
+        </thead>
+        <tbody id="history-body">
+          <tr><td colspan="5" style="text-align:center;color:var(--gray);padding:16px;font-family:var(--sans)">No runs yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let runs = 0, promoted = 0, rejected = 0, running = false;
+const history = [];
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function now() {
+  return new Date().toLocaleTimeString('en-US', {hour12:false});
+}
+
+function log(stage, msg, cls='') {
+  const el = $('run-log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `
+    <span class="log-time">${now()}</span>
+    <span class="log-stage">${stage}</span>
+    <span class="log-msg ${cls}">${msg}</span>
+  `;
+  el.appendChild(entry);
+  el.scrollTop = el.scrollHeight;
+}
+
+function setStage(id, state, status) {
+  const box = $('stage-' + id);
+  box.className = 'stage-box ' + state;
+  $('st-' + id).textContent = status;
+}
+
+function setConnector(id, state) {
+  const conn = $('conn-' + id);
+  conn.className = 'connector-line ' + state;
+}
+
+function resetStages() {
+  ['train','evaluate','gate','promote','notify'].forEach(s => {
+    setStage(s, 'pending', s === 'gate' ? 'AUC ≥ 0.75' : 'Waiting');
+  });
+  ['1','2','3','4'].forEach(c => setConnector(c, ''));
+}
+
+function updateKPIs(auc) {
+  $('m-runs').textContent     = runs;
+  $('m-promoted').textContent = promoted;
+  $('m-rejected').textContent = rejected;
+  $('m-auc').textContent      = auc ? auc.toFixed(4) : '—';
+}
+
+function addHistoryRow(run) {
+  const tbody = $('history-body');
+  if (history.length === 1) tbody.innerHTML = '';
+  const row = document.createElement('tr');
+  const gatePill = run.passed
+    ? `<span class="pill pill-g">PASS</span>`
+    : `<span class="pill pill-r">FAIL</span>`;
+  const resultPill = run.passed
+    ? `<span class="pill pill-g">Promoted</span>`
+    : `<span class="pill pill-r">Rejected</span>`;
+  row.innerHTML = `
+    <td>#${runs}</td>
+    <td>${run.auc.toFixed(4)}</td>
+    <td>${run.brier.toFixed(4)}</td>
+    <td>${gatePill}</td>
+    <td>${resultPill}</td>
+  `;
+  tbody.insertBefore(row, tbody.firstChild);
+}
+
+// ── Simulation ─────────────────────────────────────────────────────────────
+function simulateTrain() {
+  // Slightly vary AUC around known value
+  const auc   = 0.72 + Math.random() * 0.12;  // 0.72 – 0.84
+  const brier = 0.08 + Math.random() * 0.08;  // 0.08 – 0.16
+  return { auc, brier };
+}
+
+async function runPipeline() {
+  if (running) return;
+  running = true;
+  runs++;
+
+  const btn = $('run-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Running…';
+
+  resetStages();
+  log('pipeline', `Run #${runs} started`, 'log-ok');
+
+  // ── Train ──────────────────────────────────────────────────────────────
+  setStage('train', 'active', 'Training…');
+  log('train', 'Generating synthetic loan data (n=5,000)');
+  await sleep(800);
+  log('train', 'Fitting GradientBoostingClassifier (200 estimators)');
+  await sleep(1200);
+
+  const { auc, brier } = simulateTrain();
+  setStage('train', 'success', 'Complete');
+  setConnector('1', 'success');
+  log('train', `Model trained — artifact saved to S3`, 'log-ok');
+
+  // ── Evaluate ───────────────────────────────────────────────────────────
+  setStage('evaluate', 'active', 'Computing metrics…');
+  await sleep(600);
+  log('evaluate', `AUC: ${auc.toFixed(4)}  Brier: ${brier.toFixed(4)}`);
+  await sleep(400);
+  log('evaluate', 'Calibration report written to S3');
+  setStage('evaluate', 'success', `AUC ${auc.toFixed(3)}`);
+  setConnector('2', 'success');
+
+  // ── Quality Gate ───────────────────────────────────────────────────────
+  setStage('gate', 'active', 'Checking thresholds…');
+  await sleep(500);
+
+  const aucPass   = auc >= 0.75;
+  const brierPass = brier <= 0.15;
+  const passed    = aucPass && brierPass;
+
+  log('gate', `AUC ${auc.toFixed(4)} ≥ 0.75 → ${aucPass ? '✅' : '❌'}`,
+    aucPass ? 'log-ok' : 'log-err');
+  log('gate', `Brier ${brier.toFixed(4)} ≤ 0.15 → ${brierPass ? '✅' : '❌'}`,
+    brierPass ? 'log-ok' : 'log-err');
+
+  if (passed) {
+    setStage('gate', 'success', 'PASSED ✅');
+    setConnector('3', 'success');
+    log('gate', 'Quality gate PASSED — proceeding to promote', 'log-ok');
+
+    // ── Promote ──────────────────────────────────────────────────────────
+    setStage('promote', 'active', 'Promoting…');
+    await sleep(600);
+    const runId = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19) + 'Z';
+    log('promote', `Versioned artifact: s3://bucket/versions/${runId}/model.joblib`);
+    await sleep(400);
+    log('promote', 'Registry entry updated: s3://bucket/registry/latest.json', 'log-ok');
+    setStage('promote', 'success', 'Promoted ✅');
+    setConnector('4', 'success');
+    promoted++;
+
+  } else {
+    setStage('gate', 'failed', 'FAILED ❌');
+    log('gate', 'Quality gate FAILED — model rejected', 'log-err');
+    setStage('promote', 'pending', 'Skipped');
+    rejected++;
+  }
+
+  // ── Notify ─────────────────────────────────────────────────────────────
+  setStage('notify', 'active', 'Sending…');
+  await sleep(400);
+  log('notify', `SNS notification sent — ${passed ? 'PROMOTED' : 'REJECTED'}`,
+    passed ? 'log-ok' : 'log-warn');
+  log('notify', `Run summary: s3://bucket/runs/${Date.now()}/summary.json`);
+  setStage('notify', 'success', 'Sent ✅');
+
+  log('pipeline', `Run #${runs} complete — ${passed ? '✅ PROMOTED' : '❌ REJECTED'}`,
+    passed ? 'log-ok' : 'log-err');
+
+  // Update UI
+  history.push({ auc, brier, passed });
+  addHistoryRow(history[history.length-1]);
+  updateKPIs(auc);
+
+  btn.disabled = false;
+  btn.textContent = '▶ Run Pipeline';
+  running = false;
+}
+
+function resetPipeline() {
+  if (running) return;
+  resetStages();
+  $('run-log').innerHTML = `
+    <div class="log-entry">
+      <span class="log-time">--:--:--</span>
+      <span class="log-stage">pipeline</span>
+      <span class="log-msg">Ready. Click Run Pipeline to start.</span>
+    </div>`;
+}
+</script>
+</body>
+</html>
